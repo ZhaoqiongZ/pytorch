@@ -482,6 +482,21 @@ class TestCuda(TestCase):
 
         torch._C._cuda_clearCublasWorkspaces()
 
+    @contextlib.contextmanager
+    def _hip_allow_tf32():
+        # for HIP/AMDGPU, tf32 is behind a flag because the TF32 support is new 
+        # and only for MI300+
+        hip_allow_tf32 = os.environ.get("HIPBLASLT_ALLOW_TF32", None)
+        os.environ["HIPBLASLT_ALLOW_TF32"] = 1
+
+        try:
+            yield
+        finally:
+            if hip_allow_tf32 is not None:
+                os.environ["HIPBLASLT_ALLOW_TF32"] = hip_allow_tf32
+            else:
+                del os.environ["HIPBLASLT_ALLOW_TF32"]
+
     def test_cublas_allow_tf32_get_set(self):
         skip_tf32_cublas = "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE" in os.environ and int(
             os.environ["TORCH_ALLOW_TF32_CUBLAS_OVERRIDE"]
@@ -490,11 +505,14 @@ class TestCuda(TestCase):
             self.assertTrue(torch.backends.cuda.matmul.allow_tf32)
             return
 
-        orig = torch.backends.cuda.matmul.allow_tf32
-        self.assertEqual(torch._C._get_cublas_allow_tf32(), orig)
-        torch.backends.cuda.matmul.allow_tf32 = not orig
-        self.assertEqual(torch._C._get_cublas_allow_tf32(), not orig)
-        torch.backends.cuda.matmul.allow_tf32 = orig
+        tf32_ctx = self._hip_allow_tf32 if torch.version.hip else contextlib.nullcontext
+
+        with tf32_ctx():
+            orig = torch.backends.cuda.matmul.allow_tf32
+            self.assertEqual(torch._C._get_cublas_allow_tf32(), orig)
+            torch.backends.cuda.matmul.allow_tf32 = not orig
+            self.assertEqual(torch._C._get_cublas_allow_tf32(), not orig)
+            torch.backends.cuda.matmul.allow_tf32 = orig
 
     def test_float32_matmul_precision_get_set(self):
         orig = torch.get_float32_matmul_precision()
@@ -508,14 +526,18 @@ class TestCuda(TestCase):
             self.assertEqual(torch.get_float32_matmul_precision(), "highest")
         else:
             self.assertTrue(torch.backends.cuda.matmul.allow_tf32)
-        for p in ("medium", "high"):
-            torch.set_float32_matmul_precision(p)
-            self.assertEqual(torch.get_float32_matmul_precision(), p)
-            self.assertTrue(torch.backends.cuda.matmul.allow_tf32)
-        torch.set_float32_matmul_precision("highest")
-        self.assertEqual(torch.get_float32_matmul_precision(), "highest")
-        self.assertFalse(torch.backends.cuda.matmul.allow_tf32)
-        torch.set_float32_matmul_precision(orig)
+
+        tf32_ctx = self._hip_allow_tf32 if torch.version.hip else contextlib.nullcontext
+
+        with tf32_ctx():
+            for p in ("medium", "high"):
+                torch.set_float32_matmul_precision(p)
+                self.assertEqual(torch.get_float32_matmul_precision(), p)
+                self.assertTrue(torch.backends.cuda.matmul.allow_tf32)
+            torch.set_float32_matmul_precision("highest")
+            self.assertEqual(torch.get_float32_matmul_precision(), "highest")
+            self.assertFalse(torch.backends.cuda.matmul.allow_tf32)
+            torch.set_float32_matmul_precision(orig)
 
     def test_cublas_allow_fp16_reduced_precision_reduction_get_set(self):
         orig = torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction
