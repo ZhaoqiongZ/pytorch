@@ -2075,7 +2075,6 @@ class GraphModule(torch.nn.Module):
 """,
         )
 
-    @unittest.expectedFailure
     def test_graph_break_before___enter__(self):
         @contextlib.contextmanager
         def whoo(x):
@@ -2154,7 +2153,6 @@ class GraphModule(torch.nn.Module):
         self.assertEqual(expected, out)
         self.assertEqual(len(eager.graphs), 0)
 
-    @unittest.expectedFailure
     def test_graph_break_after___enter__(self):
         @contextlib.contextmanager
         def whoo(x):
@@ -2180,7 +2178,6 @@ class GraphModule(torch.nn.Module):
         self.assertEqual(expected, out)
         self.assertEqual(len(eager.graphs), 0)
 
-    @unittest.expectedFailure
     def test_graph_break_before_and_after___enter__(self):
         @contextlib.contextmanager
         def whoo(x):
@@ -2207,7 +2204,6 @@ class GraphModule(torch.nn.Module):
         self.assertEqual(expected, out)
         self.assertEqual(len(eager.graphs), 0)
 
-    @unittest.expectedFailure
     def test_graph_break_before___enter___and_disable___exit__(self):
         @contextlib.contextmanager
         def whoo(x):
@@ -2238,7 +2234,6 @@ class GraphModule(torch.nn.Module):
         self.assertEqual(expected, out)
         self.assertEqual(len(eager.graphs), 0)
 
-    @unittest.expectedFailure
     def test_disable___enter__(self):
         def h(x):
             return x.cos()
@@ -2323,7 +2318,6 @@ class GraphModule(torch.nn.Module):
         self.assertEqual(expected, out)
         self.assertEqual(len(eager.graphs), 0)
 
-    @unittest.expectedFailure
     def test_graph_break_and_disable___enter__(self):
         @contextlib.contextmanager
         def whoo(x):
@@ -2378,7 +2372,6 @@ class GraphModule(torch.nn.Module):
         self.assertEqual(expected, out)
         self.assertEqual(len(eager.graphs), 0)
 
-    @unittest.expectedFailure
     @torch._dynamo.config.patch(enable_trace_contextlib=False)
     def test_disable_trace_contextmanager(self):
         @contextlib.contextmanager
