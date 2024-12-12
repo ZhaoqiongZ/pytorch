@@ -1,0 +1,38 @@
+name: Build Windows AMI
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'pytorch/test-infra branch to build from.'
+        required: true
+        default: 'main'
+
+env:
+  PACKER_VERSION: "1.11.2"
+
+jobs:
+  build-windows-ami:
+    runs-on: lf.linux.large
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: pytorch/test-infra
+          #ref: ${{ inputs.branch }}
+
+      - name: Configure AWS Credentials (PyTorch Account)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::391835788720:role/gha-packer-role
+          aws-region: us-east-1
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+
+      - name: Packer Build
+        run: |
+          cd aws/windows
+          packer build -var 'skip_create_ami=false' .
