@@ -12,6 +12,7 @@ import unittest.mock
 import weakref
 from abc import abstractmethod
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
@@ -52,28 +53,70 @@ and no guard installation notions here.
 """
 
 
-class CompileId(NamedTuple):
-    frame_id: int
+# TODO: mark as kw_only=True once we drop support for <Python 3.10
+@dataclass(frozen=True)
+class CompileId:
+    frame_id: Optional[int]
     # This id is per-frame, and counts how many times we've compiled this
     # frame.  This could have been a global id but having this be per-frame
     # gives you a better intuitive sense for how many recompiles have occurred
     # so far.
-    frame_compile_id: int
+    frame_compile_id: Optional[int]
     # TODO: consider also tracking the recompilation count
+    compiled_autograd_id: Optional[int] = None
 
     def __str__(self):
-        return f"{self.frame_id}/{self.frame_compile_id}"
+        # NOTE: Keep this in sync with both from_string and the tlparse repo
+        if self.compiled_autograd_id is not None:
+            assert (self.frame_id is None) == (self.frame_compile_id is None)
+            return f"!{self.compiled_autograd_id}/{self.frame_id}/{self.frame_compile_id}".replace(
+                "None", "-"
+            )
+        else:
+            assert self.frame_id is not None and self.frame_compile_id is not None
+            return f"{self.frame_id}/{self.frame_compile_id}"
 
     @classmethod
     def from_string(cls, compile_id: Optional[str]):
         """
         Factory method that creates a CompileId from its string representation.
+        Keep this in sync with the __str__ method.
         """
         if compile_id is None:
             return None
         try:
-            frame_id, frame_compile_id = compile_id.split("/")
-            return cls(int(frame_id), int(frame_compile_id))
+            string_ids = compile_id.split("/")
+            if len(string_ids) == 2:
+                frame_id, frame_compile_id = string_ids
+                return cls(
+                    frame_id=int(frame_id), frame_compile_id=int(frame_compile_id)
+                )
+            else:
+                unparsed = set(range(len(string_ids)))
+
+                compiled_autograd_id = None
+                for i, string_id in enumerate(string_ids):
+                    if string_id.startswith("!"):
+                        compiled_autograd_id = int(string_id[1:])
+                        unparsed.remove(i)
+                    # Add other special symbols here
+
+                assert len(unparsed) == 2
+                idxs = list(unparsed)
+                lower_idx, higher_idx = (
+                    (idxs[0], idxs[1]) if idxs[0] < idxs[1] else (idxs[1], idxs[0])
+                )
+                assert lower_idx + 1 == higher_idx
+                frame_id, frame_compile_id = (
+                    string_ids[lower_idx],
+                    string_ids[higher_idx],
+                )
+                return cls(
+                    compiled_autograd_id=compiled_autograd_id,
+                    frame_id=int(frame_id),
+                    frame_compile_id=int(frame_compile_id),
+                )
+
         except Exception as e:
             raise ValueError(f"Invalid compile_id '{compile_id}'") from e
 
@@ -85,6 +128,7 @@ class TraceId(NamedTuple):
     attempt: int
 
     def __str__(self):
+        # Keep this in sync with tlparse repo
         if self.attempt == 0:
             return str(self.compile_id)
         else:
