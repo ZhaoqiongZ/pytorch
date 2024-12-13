@@ -2726,6 +2726,7 @@ coverage_ignore_classes = [
     "SymExprPrinter",
     "RelaxedUnspecConstraint",
     "RuntimeAssert",
+    "ShapeGuardCppPrinter",
     "ShapeGuardPrinter",
     "ShapeGuardPythonPrinter",
     "SymDispatchMode",

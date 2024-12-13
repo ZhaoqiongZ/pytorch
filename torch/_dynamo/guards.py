@@ -47,10 +47,12 @@ from torch._C._dynamo.guards import (
     install_no_tensor_aliasing_guard,
     install_object_aliasing_guard,
     install_storage_overlapping_guard,
+    install_symbolic_shape_guard,
     profile_guard_manager,
     RootGuardManager,
 )
 from torch._dynamo.source import (
+    IndexedSource,
     is_from_flatten_script_object_source,
     is_from_local_source,
     is_from_optimizer_source,
@@ -85,6 +87,7 @@ from .source import (
     AttrProxySource,
     AttrSource,
     CallFunctionNoArgsSource,
+    CallMethodItemSource,
     ChainedSource,
     ConstDictKeySource,
     DefaultsSource,
@@ -1039,6 +1042,25 @@ class GuardBuilder(GuardBuilderBase):
                     example_value=example_value,
                     guard_manager_enum=guard_manager_enum,
                 )
+        elif istype(source, TensorPropertySource):
+            out = getattr(
+                base_guard_manager,
+                f"tensor_property_{source.prop.name.lower()}_manager",
+            )(
+                idx=source.idx,
+                source=source_name,
+                example_value=example_value,
+                guard_manager_enum=guard_manager_enum,
+            )
+        elif istype(source, IndexedSource):
+            assert base_guard_manager  # to make mypy happy
+
+            out = base_guard_manager.indexed_manager(
+                idx=source.idx,
+                source=source_name,
+                example_value=example_value,
+                guard_manager_enum=guard_manager_enum,
+            )
         elif istype(source, GetItemSource):
             assert base_guard_manager  # to make mypy happy
             if isinstance(base_example_value, (dict, collections.OrderedDict)):
@@ -1178,6 +1200,14 @@ class GuardBuilder(GuardBuilderBase):
             assert base_guard_manager  # to make mypy happy
             out = base_guard_manager.lambda_manager(
                 python_lambda=lambda x: x.get_base(),
+                source=source_name,
+                example_value=example_value,
+                guard_manager_enum=guard_manager_enum,
+            )
+        elif istype(source, CallMethodItemSource):
+            assert base_guard_manager  # to make mypy happy
+            out = base_guard_manager.lambda_manager(
+                python_lambda=lambda x: x.item(),
                 source=source_name,
                 example_value=example_value,
                 guard_manager_enum=guard_manager_enum,
@@ -1900,11 +1930,82 @@ class GuardBuilder(GuardBuilderBase):
                 closure_vars={**SYMPY_INTERP, **_get_closure_vars()},
             )
 
-        install_python_guard()
-        # When exporting, we may work with the shape constraints some more in
-        # postprocessing, so don't freeze yet
-        if not self.check_fn_manager.output_graph.export:
-            output_graph.shape_env.freeze()
+        try:
+            if config.enable_cpp_symbolic_shape_guards:
+                import ctypes
+
+                from torch._inductor.codecache import CppCodeCache
+
+                cpp_code_parts, verbose_code_parts = _get_code_parts("cpp")
+
+                code_parts, source_to_symbol = (
+                    cpp_code_parts.exprs,
+                    cpp_code_parts.source_to_symbol,
+                )
+                if not code_parts:
+                    return
+
+                for code in code_parts:
+                    self._set_guard_export_info(guard, [code])
+
+                # Make ShapeEnv guards available for testing.
+                if compile_context := CompileContext.try_get():
+                    compile_context.shape_env_guards.extend(verbose_code_parts)
+
+                for source in source_to_symbol:
+                    if not isinstance(self.get(source.name()), (int, float)):
+                        # SymInts go through python guard as we only support
+                        # int64_t in C++ guards for now.
+                        install_python_guard()
+                        return
+
+                try:
+                    guard_managers = [
+                        self.get_guard_manager_from_source(IndexedSource(source, i))
+                        for i, source in enumerate(source_to_symbol)
+                    ]
+
+                    values_str = ", ".join(
+                        f"{symbol} = values[{i}]"
+                        for i, symbol in enumerate(source_to_symbol.values())
+                    )
+                    func_str = textwrap.dedent(
+                        f"""
+                    #include <cstdint>
+                    #include <cmath>
+                    #include <c10/util/generic_math.h>
+
+                    extern "C" int64_t guard(int64_t *values) {{
+                      int64_t {values_str};
+                      return ({") && (".join(code_parts)});
+                    }}
+                    """
+                    )
+                    clib = CppCodeCache.load(func_str)
+                    cguard = ctypes.cast(clib.guard, ctypes.c_void_p).value
+                    assert cguard
+                except NameError:
+                    # Happens when there are ConstantSource
+                    pass
+                except torch._inductor.exc.InvalidCxxCompiler:
+                    # No valid C++ compiler to compile the shape guard
+                    pass
+                else:
+                    install_symbolic_shape_guard(
+                        guard_managers,
+                        len(source_to_symbol),
+                        cguard,
+                        clib,
+                        verbose_code_parts,
+                    )
+                    return
+
+            install_python_guard()
+        finally:
+            # When exporting, we may work with the shape constraints some more in
+            # postprocessing, so don't freeze yet
+            if not self.check_fn_manager.output_graph.export:
+                output_graph.shape_env.freeze()
 
     def TENSOR_MATCH(self, guard: Guard, value=None):
         # For tensors that are part of the Dynamo extracted Fx graph module, an
