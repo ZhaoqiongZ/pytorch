@@ -4,36 +4,36 @@ Getting Started on Intel GPU
 Hardware Prerequisite
 ---------------------
 
-+----------------+---------------------------------------------------------------------+
-| Supported OS   | Validated Hardware                                                  |
-+================+=====================================================================+
-|| Windows 10/11 || - Intel® Arc A-Series Graphics                                     |
-||               || - Intel® Arc B-Series Graphics                                     |
-||               || - Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || - Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
-||               || - Intel® Core™ Ultra Series 2 processors                           |
-+----------------+---------------------------------------------------------------------+
-|| Ubuntu 24.10  || - Intel® Arc A-Series Graphics                                     |
-||               || - Intel® Arc B-Series Graphics                                     |
-||               || - Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || - Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
-||               || - Intel® Core™ Ultra Series 2 processors                           |
-||               || - Intel® Data Center GPU Max Series                                |
-+----------------+---------------------------------------------------------------------+
-|| Ubuntu 24.04  || - Intel® Arc A-Series Graphics                                     |
-||               || - Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || - Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
-||               || - Intel® Core™ Ultra Series 2 processors                           |
-||               || - Intel® Data Center GPU Max Series                                |
-+----------------+---------------------------------------------------------------------+
-|| Ubuntu 22.04  || - Intel® Arc A-Series Graphics                                     |
-||               || - Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || - Intel® Data Center GPU Max Series                                |
-+----------------+---------------------------------------------------------------------+
-|| WSL2          || - Intel® Arc A-Series Graphics                                     |
-||               || - Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || - Intel® Data Center GPU Max Series                                |
-+----------------+---------------------------------------------------------------------+
++----------------+-------------------------------------------------------------------+
+| Supported OS   | Validated Hardware                                                |
++================+===================================================================+
+|| Windows 10/11 || Intel® Arc A-Series Graphics                                     |
+||               || Intel® Arc B-Series Graphics                                     |
+||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
+||               || Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
+||               || Intel® Core™ Ultra Series 2 processors                           |
++----------------+-------------------------------------------------------------------+
+|| Ubuntu 24.10  || Intel® Arc A-Series Graphics                                     |
+||               || Intel® Arc B-Series Graphics                                     |
+||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
+||               || Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
+||               || Intel® Core™ Ultra Series 2 processors                           |
+||               || Intel® Data Center GPU Max Series                                |
++----------------+-------------------------------------------------------------------+
+|| Ubuntu 24.04  || Intel® Arc A-Series Graphics                                     |
+||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
+||               || Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
+||               || Intel® Core™ Ultra Series 2 processors                           |
+||               || Intel® Data Center GPU Max Series                                |
++----------------+-------------------------------------------------------------------+
+|| Ubuntu 22.04  || Intel® Arc A-Series Graphics                                     |
+||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
+||               || Intel® Data Center GPU Max Series                                |
++----------------+-------------------------------------------------------------------+
+|| WSL2          || Intel® Arc A-Series Graphics                                     |
+||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
+||               || Intel® Data Center GPU Max Series                                |
++----------------+-------------------------------------------------------------------+
 
 Intel GPUs support (Prototype) is ready in PyTorch* 2.7 for Intel® Client GPUs and Intel® Data Center GPU Max Series on both Linux and Windows, which brings Intel GPUs and the SYCL* software stack into the official PyTorch stack with consistent user experience to embrace more AI application scenarios.
 
