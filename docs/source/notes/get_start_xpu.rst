@@ -4,45 +4,48 @@ Getting Started on Intel GPU
 Hardware Prerequisite
 ---------------------
 
-+----------------+-------------------------------------------------------------------+
-| Supported OS   | Validated Hardware                                                |
-+================+===================================================================+
-|| Windows 10/11 || Intel® Arc A-Series Graphics                                     |
-||               || Intel® Arc B-Series Graphics                                     |
-||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
-||               || Intel® Core™ Ultra Series 2 processors                           |
-+----------------+-------------------------------------------------------------------+
-|| Ubuntu 24.10  || Intel® Arc A-Series Graphics                                     |
-||               || Intel® Arc B-Series Graphics                                     |
-||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
-||               || Intel® Core™ Ultra Series 2 processors                           |
-||               || Intel® Data Center GPU Max Series                                |
-+----------------+-------------------------------------------------------------------+
-|| Ubuntu 24.04  || Intel® Arc A-Series Graphics                                     |
-||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || Intel® Core™ Ultra Processors Series 2 with Intel Arc Graphics   |
-||               || Intel® Core™ Ultra Series 2 processors                           |
-||               || Intel® Data Center GPU Max Series                                |
-+----------------+-------------------------------------------------------------------+
-|| Ubuntu 22.04  || Intel® Arc A-Series Graphics                                     |
-||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || Intel® Data Center GPU Max Series                                |
-+----------------+-------------------------------------------------------------------+
-|| WSL2          || Intel® Arc A-Series Graphics                                     |
-||               || Intel® Core™ Ultra Processors with Intel Arc Graphics            |
-||               || Intel® Data Center GPU Max Series                                |
-+----------------+-------------------------------------------------------------------+
+For Intel Data Center GPU
+
+.. list-table::
+   :widths: 50 50
+   :header-rows: 1
+
+   * - Device
+     - Red Hat* Enterprise Linux* 9.2
+     - SUSE Linux Enterprise Server* 15 SP5
+     - Ubuntu* Server 22.04 (>= 5.15 LTS kernel)
+   * - Intel® Data Center GPU Max Series (CodeName: Ponte Vecchio)
+     - yes
+     - yes
+     - yes
+
+
+
+For Intel Client GPU
+
++-------------------------------------+----------------------------------------------------------------------------------------------+
+| Supported OS                        | Validated Hardware                                                                           |
++=====================================+==============================================================================================+
+|| Windows 10/11 & Ubuntu 24.10       || Intel® Arc A-Series Graphics (CodeName: Alchemist)                                          |
+||                                    || Intel® Arc B-Series Graphics (CodeName: Battlemage)                                         |
+||                                    || Intel® Core™ Ultra Processors with Intel® Arc™ Graphics (CodeName: Meteor Lake)             |
+||                                    || Intel® Core™ Ultra 200V Series with Intel® Arc™ Graphics (CodeName: Lunar Lake)             |
+||                                    || Intel® Core™ Ultra Series 2 Processors with Intel® Arc™ Graphics (CodeName: Arrow Lake)     |
++-------------------------------------+----------------------------------------------------------------------------------------------+
+|| Ubuntu 24.04 & WSL2 (Ubuntu 24.04) || Intel® Arc A-Series Graphics (CodeName: Alchemist)                                          |
+||                                    || Intel® Core™ Ultra Processors with Intel® Arc™ Graphics (CodeName: Meteor Lake)             |
+||                                    || Intel® Core™ Ultra 200V Series with Intel® Arc™ Graphics (CodeName: Lunar Lake)             |
+||                                    || Intel® Core™ Ultra Series 2 Processors with Intel® Arc™ Graphics (CodeName: Arrow Lake)     |
++-------------------------------------+----------------------------------------------------------------------------------------------+
 
 Intel GPUs support (Prototype) is ready in PyTorch* 2.7 for Intel® Client GPUs and Intel® Data Center GPU Max Series on both Linux and Windows, which brings Intel GPUs and the SYCL* software stack into the official PyTorch stack with consistent user experience to embrace more AI application scenarios.
 
 Software Prerequisite
 ---------------------
 
-To use PyTorch on Intel GPUs, you need to install the Intel GPUs driver first. For installation guide, visit `Intel GPUs Driver Installation <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu/2-7.html#driver-installation>`_.
+To use PyTorch on Intel GPUs, you need to install the Intel GPUs driver first. For installation guide, visit `Intel GPUs Driver Installation <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu.html#driver-installation>`_.
 
-Please skip the Intel® Deep Learning Essentials installation section if you install from binaries. For building from source, please refer to  `PyTorch Installation Prerequisites for Intel GPUs <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu/2-7.html>`_ for both Intel GPU Driver and Intel® Deep Learning Essentials Installation.
+Please skip the Intel® Deep Learning Essentials installation section if you install from binaries. For building from source, please refer to  `PyTorch Installation Prerequisites for Intel GPUs <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu.html>`_ for both Intel GPU Driver and Intel® Deep Learning Essentials Installation.
 
 
 Installation
@@ -51,7 +54,7 @@ Installation
 Binaries
 ^^^^^^^^
 
-Now that we have `Intel GPU Driver <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu/2-7.html#driver-installation>`_ installed, use the following commands to install ``pytorch``, ``torchvision``, ``torchaudio`` on Linux.
+Now that we have `Intel GPU Driver <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu.html#driver-installation>`_ installed, use the following commands to install ``pytorch``, ``torchvision``, ``torchaudio`` on Linux.
 
 For preview wheels
 
@@ -70,7 +73,7 @@ For nightly wheels
 From Source
 ^^^^^^^^^^^
 
-Now that we have `Intel GPU Driver and Intel® Deep Learning Essentials <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu/2-7.html>`_ installed. Follow guides to build ``pytorch``, ``torchvision``, ``torchaudio`` from source.
+Now that we have `Intel GPU Driver and Intel® Deep Learning Essentials <https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu.html>`_ installed. Follow guides to build ``pytorch``, ``torchvision``, ``torchaudio`` from source.
 
 Build from source for ``torch`` refer to `PyTorch Installation Build from source <https://github.com/pytorch/pytorch?tab=readme-ov-file#from-source>`_.
 
@@ -106,7 +109,7 @@ If you are migrating code from ``cuda``, you would change references from ``cuda
 The following points outline the support and limitations for PyTorch with Intel GPU:
 
 #. Both training and inference workflows are supported.
-#. Both eager mode and ``torch.compile`` is supported.
+#. Both eager mode and ``torch.compile`` is supported. The feature ``torch.compile`` is also supported on Windows from PyTorch* 2.7 with Intel GPU, refer to ` How to Use Inductor on Windows with CPU/XPU <>`_.
 #. Data types such as FP32, BF16, FP16, and Automatic Mixed Precision (AMP) are all supported.
 
 Examples
