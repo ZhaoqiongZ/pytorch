@@ -13276,6 +13276,7 @@ def forward(self, x):
         self.assertEqual(num_asserts, 1)
         with self.assertRaises(RuntimeError):
             ep.module()(torch.randn(4, 2))
+        ep.module()(torch.randn(9, 9))
         with self.assertRaisesRegex(
             RuntimeError,
             r"Runtime assertion failed for .* Eq\(Mod\(.*\), 0\) (.*\n)*.*" + \

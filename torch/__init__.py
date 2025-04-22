@@ -1629,17 +1629,7 @@ def _check_with(
 
     from torch.fx.experimental.symbolic_shapes import expect_true
 
-    msg = None
-    if message:
-        if callable(message):
-            try:
-                msg = message()
-            except:
-                pass
-        else:
-            msg = message
-
-    if expect_true(cond, msg=msg):
+    if expect_true(cond, message=message):
         return
 
     # error_type must be a subclass of Exception and not subclass of Warning
