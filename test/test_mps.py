@@ -87,7 +87,6 @@ def mps_ops_grad_modifier(ops):
         'polygammapolygamma_n_0': [torch.float16],
 
         # Unimplemented ops
-        '__getitem__': [torch.float16],
         '_segment_reduce': [torch.float16, torch.float32],
         '_chunk_cat': [torch.float16, torch.float32],
         '_upsample_bilinear2d_aa': None,  # `_upsample_bilinear2d_aa_backward_out` not implemented for MPS
@@ -809,7 +808,7 @@ def mps_ops_modifier(ops):
         # See https://github.com/pytorch/pytorch/issues/111479
         'nn.functional.multi_head_attention_forward': [torch.float32, torch.float16, torch.bfloat16],
 
-        'index_put': [torch.bool, torch.uint8, torch.int8, torch.int16, torch.int64, torch.float16, torch.bfloat16],
+        'index_put': [torch.bool, torch.uint8, torch.int8, torch.int16, torch.int64],
         # zero to negative integer powers are undefined
         '__rpow__': [torch.int8, torch.int16, torch.int32, torch.int64],
         'resize_': [torch.float16, torch.float32, torch.bfloat16],
