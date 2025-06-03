@@ -8385,7 +8385,6 @@ class _AllReduce_Kernel(_CollectiveKernel):
             unbacked_bindings=unbacked_bindings,
         )
         self.set_cpp_kernel_name("aoti_torch_cpu__c10d_functional_all_reduce_")
-        # self.cpp_kernel_name = "aoti_torch_cpu__c10d_functional_all_reduce_"
 
     def codegen(self, wrapper) -> None:  # type: ignore[no-untyped-def]
         wrapper.include_extra_header("torch/csrc/inductor/aoti_torch/c/shim_cpu.h")
@@ -8417,7 +8416,6 @@ class _AllReduceKernel(_CollectiveKernel):
             unbacked_bindings=unbacked_bindings,
         )
         self.set_cpp_kernel_name("aoti_torch_cpu__c10d_functional_all_reduce")
-        # self.cpp_kernel_name = "aoti_torch_cpu__c10d_functional_all_reduce"
 
     def codegen(self, wrapper) -> None:  # type: ignore[no-untyped-def]
         wrapper.include_extra_header("torch/csrc/inductor/aoti_torch/c/shim_cpu.h")
