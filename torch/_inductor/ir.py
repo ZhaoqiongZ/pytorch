@@ -8219,13 +8219,6 @@ class GeneratorState(NonTensorObj):
 
 
 class _CollectiveKernel(FallbackKernel):
-    def codegen(self, wrapper) -> None:  # type: ignore[no-untyped-def]
-        wrapper.include_extra_header("torch/csrc/inductor/aoti_torch/c/shim_cpu.h")
-        wrapper.generate_extern_kernel_alloc(self)
-
-        if isinstance(self.layout, Layout):
-            self.codegen_size_asserts(wrapper)
-
     def should_allocate(self) -> bool:
         return False
 
@@ -8392,6 +8385,14 @@ class _AllReduce_Kernel(_CollectiveKernel):
             unbacked_bindings=unbacked_bindings,
         )
         self.set_cpp_kernel_name("aoti_torch_cpu__c10d_functional_all_reduce_")
+        # self.cpp_kernel_name = "aoti_torch_cpu__c10d_functional_all_reduce_"
+
+    def codegen(self, wrapper) -> None:  # type: ignore[no-untyped-def]
+        wrapper.include_extra_header("torch/csrc/inductor/aoti_torch/c/shim_cpu.h")
+        wrapper.generate_extern_kernel_alloc(self)
+
+        if isinstance(self.layout, Layout):
+            self.codegen_size_asserts(wrapper)
 
 
 class _AllReduceKernel(_CollectiveKernel):
@@ -8416,6 +8417,14 @@ class _AllReduceKernel(_CollectiveKernel):
             unbacked_bindings=unbacked_bindings,
         )
         self.set_cpp_kernel_name("aoti_torch_cpu__c10d_functional_all_reduce")
+        # self.cpp_kernel_name = "aoti_torch_cpu__c10d_functional_all_reduce"
+
+    def codegen(self, wrapper) -> None:  # type: ignore[no-untyped-def]
+        wrapper.include_extra_header("torch/csrc/inductor/aoti_torch/c/shim_cpu.h")
+        wrapper.generate_extern_kernel_alloc(self)
+
+        if isinstance(self.layout, Layout):
+            self.codegen_size_asserts(wrapper)
 
 
 class _WaitKernel(_CollectiveKernel):
@@ -8440,6 +8449,13 @@ class _WaitKernel(_CollectiveKernel):
             unbacked_bindings=unbacked_bindings,
         )
         self.set_cpp_kernel_name("aoti_torch_cpu__c10d_functional_wait_tensor")
+
+    def codegen(self, wrapper) -> None:  # type: ignore[no-untyped-def]
+        wrapper.include_extra_header("torch/csrc/inductor/aoti_torch/c/shim_cpu.h")
+        wrapper.generate_extern_kernel_alloc(self)
+
+        if isinstance(self.layout, Layout):
+            self.codegen_size_asserts(wrapper)
 
     def get_volatile_reads(self):  # type: ignore[no-untyped-def]
         inp = self.inputs[0]
