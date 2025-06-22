@@ -56,10 +56,6 @@ message(STATUS "PyTorch: CUDA detected: " ${CUDAToolkit_VERSION})
 message(STATUS "PyTorch: CUDA nvcc is: " ${CUDAToolkit_NVCC_EXECUTABLE})
 message(STATUS "PyTorch: CUDA toolkit directory: " ${CUDAToolkit_ROOT})
 
-# cuda_select_nvcc_arch_flags is required
-cmake_policy(SET CMP0146 OLD)
-find_package(CUDA)
-
 # ---[ CUDA libraries wrapper
 
 # Create new style imported libraries.
