@@ -21,11 +21,13 @@ except ImportError:
         rangePush = _fail
         rangePop = _fail
         mark = _fail
+        rangeStart = _fail
+        rangeEnd = _fail
 
     _itt = _ITTStub()  # type: ignore[assignment]
 
 
-__all__ = ["is_available", "range_push", "range_pop", "mark", "range"]
+__all__ = ["is_available", "range_push", "range_pop", "mark", "range", "range_start", "range_end"]
 
 
 def is_available():
@@ -62,6 +64,24 @@ def mark(msg):
         msg (str): ASCII message to associate with the event.
     """
     return _itt.mark(msg)
+
+
+
+def range_start(msg):
+    """
+    Start a range and return a handle. 
+
+    Arguments:
+        msg (str): ASCII message to associate with range
+    """
+    return _itt.rangeStart(msg)
+
+
+def range_end(handle):
+    """
+    End a range with a specific handle.
+    """
+    return _itt.rangeEnd(handle)
 
 
 @contextmanager

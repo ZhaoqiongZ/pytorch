@@ -10,5 +10,7 @@ void initIttBindings(PyObject* module) {
   itt.def("rangePush", itt_range_push);
   itt.def("rangePop", itt_range_pop);
   itt.def("mark", itt_mark);
+  itt.def("rangeStart", itt_range_start, py::arg("msg"));
+  itt.def("rangeEnd", itt_range_end, , py::arg("handle"));
 }
 } // namespace torch::profiler
