@@ -13,6 +13,8 @@ TORCH_API void itt_mark(const char* msg);
 
 TORCH_API itt_handle_t itt_range_start(const char* msg);
 TORCH_API void itt_range_end(itt_handle_t handle);
+TORCH_API void itt_thread_set_name(const char* name);
+TORCH_API int itt_get_pop_count();
 } // namespace torch::profiler
 
 #endif // PROFILER_ITT_H

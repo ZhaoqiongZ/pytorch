@@ -10,6 +10,7 @@
 #include <torch/csrc/utils/python_numbers.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/xpu/Module.h>
+#include <torch/csrc/xpu/Itt.h>
 
 using namespace torch;
 
@@ -383,14 +384,50 @@ static void bindGetDeviceProperties(PyObject* module) {
       py::return_value_policy::reference);
 }
 
+// static void initXpuMethodBindings(PyObject* module) {
+//   auto m = py::handle(module).cast<py::module>();
+//   m.def("_xpu_getMemoryInfo", [](c10::DeviceIndex device_index) {
+//     py::gil_scoped_release no_gil;
+//     return at::getDeviceAllocator(at::kXPU)->getMemoryInfo(device_index);
+//   });
+//   m.def(
+//       "_xpu_getStreamFromExternal",
+//       [](uintptr_t data_ptr, c10::DeviceIndex device_index) {
+//         sycl::queue* ext_queue =
+//             // NOLINTNEXTLINE(performance-no-int-to-ptr)
+//             reinterpret_cast<sycl::queue*>(reinterpret_cast<void*>(data_ptr));
+//         at::xpu::XPUStream stream =
+//             c10::xpu::getStreamFromExternal(ext_queue, device_index);
+//         return std::make_tuple(
+//             stream.id(), stream.device_index(), stream.device_type());
+//       });
+//   m.def(
+//       "_xpu_canDeviceAccessPeer",
+//       [](c10::DeviceIndex device, c10::DeviceIndex peer) {
+//         return at::xpu::canDeviceAccessPeer(device, peer);
+//       });
+//   m.def("_xpu_getMemoryFraction", [](c10::DeviceIndex device) {
+//     return c10::xpu::XPUCachingAllocator::getMemoryFraction(device);
+//   });
+//   m.def("_xpu_setMemoryFraction", [](double fraction, c10::DeviceIndex device) {
+//     c10::xpu::XPUCachingAllocator::setMemoryFraction(fraction, device);
+//   });
+//   //torch::xpu::itt::initXPUITTBindings(module);
+//   torch::xpu::itt::initXPUITTBindings(module.ptr());
+// }
 static void initXpuMethodBindings(PyObject* module) {
-  auto m = py::handle(module).cast<py::module>();
-  m.def("_xpu_getMemoryInfo", [](c10::DeviceIndex device_index) {
+  // 1. [修改] 创建 _XPU 子模块，并用一个 *新* 变量名 (xpu_module)
+  auto xpu_module = py::handle(module).cast<py::module>()
+      .def_submodule("_XPU", "XPU Bindings"); // <-- 这创建了 torch._C._XPU
+
+  // 2. [修改] 把所有 m.def(...) 改为 xpu_module.def(...)
+  //    (我们还重命名了 Python 端的函数，去掉了 "_xpu_" 前缀)
+  xpu_module.def("getMemoryInfo", [](c10::DeviceIndex device_index) {
     py::gil_scoped_release no_gil;
     return at::getDeviceAllocator(at::kXPU)->getMemoryInfo(device_index);
   });
-  m.def(
-      "_xpu_getStreamFromExternal",
+  xpu_module.def(
+      "getStreamFromExternal",
       [](uintptr_t data_ptr, c10::DeviceIndex device_index) {
         sycl::queue* ext_queue =
             // NOLINTNEXTLINE(performance-no-int-to-ptr)
@@ -400,17 +437,21 @@ static void initXpuMethodBindings(PyObject* module) {
         return std::make_tuple(
             stream.id(), stream.device_index(), stream.device_type());
       });
-  m.def(
-      "_xpu_canDeviceAccessPeer",
+  xpu_module.def(
+      "canDeviceAccessPeer",
       [](c10::DeviceIndex device, c10::DeviceIndex peer) {
         return at::xpu::canDeviceAccessPeer(device, peer);
       });
-  m.def("_xpu_getMemoryFraction", [](c10::DeviceIndex device) {
+  xpu_module.def("getMemoryFraction", [](c10::DeviceIndex device) {
     return c10::xpu::XPUCachingAllocator::getMemoryFraction(device);
   });
-  m.def("_xpu_setMemoryFraction", [](double fraction, c10::DeviceIndex device) {
+  xpu_module.def("setMemoryFraction", [](double fraction, c10::DeviceIndex device) {
     c10::xpu::XPUCachingAllocator::setMemoryFraction(fraction, device);
   });
+
+  // 3. [修改] 把 *新创建* 的 xpu_module (的 PyObject* 指针) 传递给 ITT 绑定
+  //    (xpu_module 是 py::module 对象，它 *有* .ptr() 方法)
+  torch::xpu::itt::initXPUITTBindings(xpu_module.ptr()); 
 }
 
 // Callback for python part. Used for additional initialization of python

@@ -27,7 +27,7 @@ except ImportError:
     _itt = _ITTStub()  # type: ignore[assignment]
 
 
-__all__ = ["is_available", "range_push", "range_pop", "mark", "range", "range_start", "range_end"]
+__all__ = ["is_available", "range_push", "range_pop", "mark", "range", "range_start", "range_end", "thread_set_name", "get_pop_count"]
 
 
 def is_available():
@@ -82,6 +82,26 @@ def range_end(handle):
     End a range with a specific handle.
     """
     return _itt.rangeEnd(handle)
+
+
+def thread_set_name(name: str):
+    """
+    Sets the name of the current thread for VTune.
+    This is necessary for VTune to capture ITT events 
+    from newly created Python threads.
+    
+    Args:
+        name (str): The name to assign to the current thread.
+    """
+    return _itt.thread_set_name(name)
+
+def get_pop_count():
+    """
+    Returns the number of ITT tasks successfully closed by the C++ implementation.
+    Used for verifying thread-safe pop behavior during testing.
+    """
+    # 这个函数调用的是你添加到 C++ itt.cpp 里的 Pybind 绑定
+    return _itt.get_pop_count()
 
 
 @contextmanager

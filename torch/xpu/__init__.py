@@ -20,7 +20,7 @@ from torch._utils import _dummy_type, _LazySeedTracker
 
 from ._utils import _get_device_index
 from .streams import Event, Stream
-
+from . import itt
 
 _initialized = False
 _tls = threading.local()
