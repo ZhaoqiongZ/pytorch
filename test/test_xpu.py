@@ -3125,7 +3125,7 @@ class TestXpuOptims(TestCase):
         [
             optim
             for optim in optim_db
-            if "foreach" in optim.supported_impls and "cuda" in optim.supports_fused_on
+            if "foreach" in optim.supported_impls and "xpu" in optim.supports_fused_on
         ],
         dtypes=[torch.float32],
     )
@@ -3174,6 +3174,184 @@ class TestXpuOptims(TestCase):
             scaler.update()
             self.assertEqual(scaler._scale, scale)
             self.assertEqual(scaler._growth_tracker, growth_tracker)
+
+    # -----------------------------------------------------------------
+    # Tests specifically for XPU fused Adagrad
+    # -----------------------------------------------------------------
+
+    @unittest.skipIf(not TEST_XPU, "XPU not available")
+    def test_fused_adagrad_xpu_matches_cpu(self):
+        """XPU fused Adagrad result must match CPU fused Adagrad."""
+        device = "xpu"
+        dtypes = [torch.float32, torch.float64, torch.float16, torch.bfloat16]
+        for dtype in dtypes:
+            # Use higher tolerance for reduced-precision dtypes
+            atol = 1e-3 if dtype in (torch.float16, torch.bfloat16) else 1e-5
+            rtol = 1e-3 if dtype in (torch.float16, torch.bfloat16) else 1e-5
+
+            params_cpu = [torch.randn(10, 10, dtype=dtype)]
+            params_xpu = [p.clone().to(device) for p in params_cpu]
+            grads_cpu = [torch.randn_like(p) for p in params_cpu]
+            grads_xpu = [g.clone().to(device) for g in grads_cpu]
+
+            for p, g in zip(params_cpu, grads_cpu):
+                p.requires_grad_(True)
+                p.grad = g
+
+            for p, g in zip(params_xpu, grads_xpu):
+                p.requires_grad_(True)
+                p.grad = g
+
+            opt_cpu = torch.optim.Adagrad(params_cpu, lr=0.1, fused=True)
+            opt_xpu = torch.optim.Adagrad(params_xpu, lr=0.1, fused=True)
+
+            opt_cpu.step()
+            opt_xpu.step()
+
+            for p_cpu, p_xpu in zip(params_cpu, params_xpu):
+                self.assertEqual(
+                    p_cpu,
+                    p_xpu.to("cpu"),
+                    atol=atol,
+                    rtol=rtol,
+                    msg=f"fused Adagrad XPU vs CPU mismatch for dtype={dtype}",
+                )
+
+    @unittest.skipIf(not TEST_XPU, "XPU not available")
+    def test_fused_adagrad_xpu_found_inf(self):
+        """When found_inf=1, fused Adagrad on XPU must skip the param update."""
+        device = "xpu"
+        param = torch.randn(10, device=device, requires_grad=True)
+        param_before = param.clone().detach()
+        param.grad = torch.randn_like(param)
+
+        opt = torch.optim.Adagrad([param], lr=0.1, fused=True)
+
+        # Inject a found_inf=1 tensor to simulate AMP overflow detection
+        for group in opt.param_groups:
+            group["found_inf"] = torch.ones(1, device=device)
+
+        opt.step()
+
+        # Param must remain unchanged because found_inf==1
+        self.assertTrue(
+            torch.allclose(param, param_before),
+            "fused Adagrad XPU should skip update when found_inf=1",
+        )
+
+    @unittest.skipIf(not TEST_XPU, "XPU not available")
+    def test_fused_adagrad_xpu_maximize(self):
+        """XPU fused Adagrad with maximize=True must match CPU reference."""
+        device = "xpu"
+        dtype = torch.float32
+
+        params_cpu = [torch.randn(5, 5, dtype=dtype)]
+        params_xpu = [p.clone().to(device) for p in params_cpu]
+        grads_cpu = [torch.randn_like(p) for p in params_cpu]
+        grads_xpu = [g.clone().to(device) for g in grads_cpu]
+
+        for p, g in zip(params_cpu, grads_cpu):
+            p.requires_grad_(True)
+            p.grad = g
+        for p, g in zip(params_xpu, grads_xpu):
+            p.requires_grad_(True)
+            p.grad = g
+
+        opt_cpu = torch.optim.Adagrad(params_cpu, lr=0.1, maximize=True, fused=True)
+        opt_xpu = torch.optim.Adagrad(params_xpu, lr=0.1, maximize=True, fused=True)
+
+        opt_cpu.step()
+        opt_xpu.step()
+
+        for p_cpu, p_xpu in zip(params_cpu, params_xpu):
+            self.assertEqual(
+                p_cpu,
+                p_xpu.to("cpu"),
+                atol=1e-5,
+                rtol=1e-5,
+                msg="fused Adagrad XPU maximize=True mismatch",
+            )
+
+    @unittest.skipIf(not TEST_XPU, "XPU not available")
+    def test_fused_adagrad_xpu_lr_decay(self):
+        """XPU fused Adagrad with lr_decay must match CPU reference."""
+        device = "xpu"
+        dtype = torch.float32
+
+        params_cpu = [torch.randn(8, dtype=dtype)]
+        params_xpu = [p.clone().to(device) for p in params_cpu]
+        grads_cpu = [torch.randn_like(p) for p in params_cpu]
+        grads_xpu = [g.clone().to(device) for g in grads_cpu]
+
+        for p, g in zip(params_cpu, grads_cpu):
+            p.requires_grad_(True)
+            p.grad = g
+        for p, g in zip(params_xpu, grads_xpu):
+            p.requires_grad_(True)
+            p.grad = g
+
+        lr_decay = 0.01
+        opt_cpu = torch.optim.Adagrad(
+            params_cpu, lr=0.1, lr_decay=lr_decay, fused=True
+        )
+        opt_xpu = torch.optim.Adagrad(
+            params_xpu, lr=0.1, lr_decay=lr_decay, fused=True
+        )
+
+        # Run multiple steps so lr_decay has visible effect
+        for step in range(5):
+            for p, g in zip(params_cpu, grads_cpu):
+                p.grad = g.clone()
+            for p, g in zip(params_xpu, grads_xpu):
+                p.grad = g.clone().to(device)
+            opt_cpu.step()
+            opt_xpu.step()
+
+        for p_cpu, p_xpu in zip(params_cpu, params_xpu):
+            self.assertEqual(
+                p_cpu,
+                p_xpu.to("cpu"),
+                atol=1e-5,
+                rtol=1e-5,
+                msg="fused Adagrad XPU lr_decay mismatch",
+            )
+
+    @unittest.skipIf(not TEST_XPU, "XPU not available")
+    def test_fused_adagrad_xpu_weight_decay(self):
+        """XPU fused Adagrad with weight_decay must match CPU reference."""
+        device = "xpu"
+        dtype = torch.float32
+
+        params_cpu = [torch.randn(6, 6, dtype=dtype)]
+        params_xpu = [p.clone().to(device) for p in params_cpu]
+        grads_cpu = [torch.randn_like(p) for p in params_cpu]
+        grads_xpu = [g.clone().to(device) for g in grads_cpu]
+
+        for p, g in zip(params_cpu, grads_cpu):
+            p.requires_grad_(True)
+            p.grad = g
+        for p, g in zip(params_xpu, grads_xpu):
+            p.requires_grad_(True)
+            p.grad = g
+
+        opt_cpu = torch.optim.Adagrad(
+            params_cpu, lr=0.1, weight_decay=0.01, fused=True
+        )
+        opt_xpu = torch.optim.Adagrad(
+            params_xpu, lr=0.1, weight_decay=0.01, fused=True
+        )
+
+        opt_cpu.step()
+        opt_xpu.step()
+
+        for p_cpu, p_xpu in zip(params_cpu, params_xpu):
+            self.assertEqual(
+                p_cpu,
+                p_xpu.to("cpu"),
+                atol=1e-5,
+                rtol=1e-5,
+                msg="fused Adagrad XPU weight_decay mismatch",
+            )
 
 
 @unittest.skipIf(not TEST_XPU, "XPU not available, skipping tests")
