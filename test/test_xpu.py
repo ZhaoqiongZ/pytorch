@@ -3125,7 +3125,7 @@ class TestXpuOptims(TestCase):
         [
             optim
             for optim in optim_db
-            if "foreach" in optim.supported_impls and "cuda" in optim.supports_fused_on
+            if "foreach" in optim.supported_impls and "xpu" in optim.supports_fused_on
         ],
         dtypes=[torch.float32],
     )
@@ -3174,6 +3174,8 @@ class TestXpuOptims(TestCase):
             scaler.update()
             self.assertEqual(scaler._scale, scale)
             self.assertEqual(scaler._growth_tracker, growth_tracker)
+
+
 
 
 @unittest.skipIf(not TEST_XPU, "XPU not available, skipping tests")

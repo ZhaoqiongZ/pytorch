@@ -26,6 +26,7 @@ from torch.testing._internal.common_device_type import (
     largeTensorTest,
     onlyCPU,
     onlyCUDA,
+    onlyXPU,
     onlyNativeDeviceTypes,
     skipMPS,
     TEST_WITH_ROCM,
@@ -2280,6 +2281,54 @@ class TestOptimRenewed(TestCase):
                 optimizers.append(optimizer)
         self._compare_between(inpts, models, optimizers)
 
+    @onlyXPU
+    @optims(
+        [
+            optim
+            for optim in optim_db
+            if "cpu" in optim.supports_fused_on and "xpu" in optim.supports_fused_on
+        ],
+        dtypes=floating_types_and(
+            torch.bfloat16,
+            torch.float16,
+        ),
+    )
+    def test_fused_cpu_matches_xpu(self, device, dtype, optim_info):
+        optim_cls = optim_info.optim_cls
+        optim_inputs = optim_info.optim_inputs_func(device="cpu")
+        for optim_input in optim_inputs:
+            inpts, models, optimizers = [], [], []
+            for dev in ("cpu", "xpu"):
+                kwargs = optim_input.kwargs
+                kwargs["fused"] = True
+                inpt = torch.tensor(
+                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype=dtype, device=dev
+                ).reshape(3, 2)
+
+                torch.manual_seed(1)
+                model = torch.nn.Sequential(
+                    torch.nn.Linear(2, 3),
+                    torch.nn.Sigmoid(),
+                    torch.nn.Linear(3, 1),
+                    torch.nn.Sigmoid(),
+                )
+                model.to(dtype=dtype, device=dev)
+
+                # foreach/fused optimizers should be tested with a
+                # zero_size tensor as its last param.
+                # ref: https://github.com/pytorch/pytorch/issues/100701
+                empty_param = torch.empty(
+                    (), device=dev, dtype=dtype, requires_grad=True
+                )
+                empty_param.grad = torch.rand_like(empty_param)
+                params = list(model.parameters()) + [empty_param]
+
+                optimizer = optim_cls(params, **kwargs)
+                inpts.append(inpt)
+                models.append(model)
+                optimizers.append(optimizer)
+            self._compare_between(inpts, models, optimizers)
+
     @onlyCUDA
     @optims(
         [
@@ -2531,7 +2580,7 @@ class TestOptimRenewed(TestCase):
         self.assertEqual(counter, 6)
 
 
-instantiate_device_type_tests(TestOptimRenewed, globals(), allow_mps=True)
+instantiate_device_type_tests(TestOptimRenewed, globals(), allow_mps=True, allow_xpu=True)
 instantiate_device_type_tests(TestSWAUtils, globals(), allow_mps=True)
 
 
